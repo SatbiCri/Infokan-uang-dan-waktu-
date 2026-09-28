@@ -83,10 +83,12 @@ class InfokanWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.infokan_widget)
 
             // Set click intent to open main app
-            val openIntent = Intent(context, MainActivity::class.java)
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                putExtra("ROUTE", "KEUANGAN")
+            }
             val pendingIntent = PendingIntent.getActivity(
                 context,
-                0,
+                1001,
                 openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )

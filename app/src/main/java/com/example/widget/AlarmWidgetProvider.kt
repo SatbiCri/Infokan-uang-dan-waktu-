@@ -50,9 +50,11 @@ class AlarmWidgetProvider : AppWidgetProvider() {
             val activeAlarm = alarms.firstOrNull { it.isEnabled }
 
             val views = RemoteViews(context.packageName, R.layout.widget_alarm)
-            val openIntent = Intent(context, MainActivity::class.java)
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                putExtra("ROUTE", "ALARM")
+            }
             val pendingIntent = PendingIntent.getActivity(
-                context, 0, openIntent,
+                context, 1005, openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_alarm_root, pendingIntent)

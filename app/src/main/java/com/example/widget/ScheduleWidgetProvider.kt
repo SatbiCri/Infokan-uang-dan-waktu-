@@ -52,9 +52,11 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
                 .sortedBy { it.dateTimeMillis }
 
             val views = RemoteViews(context.packageName, R.layout.widget_schedule)
-            val openIntent = Intent(context, MainActivity::class.java)
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                putExtra("ROUTE", "JADWAL")
+            }
             val pendingIntent = PendingIntent.getActivity(
-                context, 0, openIntent,
+                context, 1003, openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_schedule_root, pendingIntent)

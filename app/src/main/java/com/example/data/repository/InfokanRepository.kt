@@ -389,6 +389,11 @@ class InfokanRepository(
         InfokanWidgetProvider.updateAllWidgets(context)
     }
 
+    suspend fun updateBudget(budget: BudgetEntity) = withContext(Dispatchers.IO) {
+        budgetDao.updateBudget(budget)
+        InfokanWidgetProvider.updateAllWidgets(context)
+    }
+
     suspend fun deleteBudget(id: Long) = withContext(Dispatchers.IO) {
         budgetDao.deleteBudget(id)
         InfokanWidgetProvider.updateAllWidgets(context)

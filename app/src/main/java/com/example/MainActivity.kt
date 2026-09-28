@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.screens.ActivationScreen
@@ -79,6 +80,19 @@ fun MainApp(viewModel: InfokanViewModel = viewModel()) {
     val budgetAlert by viewModel.budgetAlert.collectAsStateWithLifecycle()
 
     var currentTab by remember { mutableStateOf(NavigationTab.KEUANGAN) }
+
+    val activityIntent = (LocalContext.current as? MainActivity)?.intent
+    LaunchedEffect(activityIntent) {
+        activityIntent?.getStringExtra("ROUTE")?.let { route ->
+            when (route) {
+                "KEUANGAN" -> currentTab = NavigationTab.KEUANGAN
+                "KEUANGAN_BUDGET" -> currentTab = NavigationTab.KEUANGAN
+                "JADWAL" -> currentTab = NavigationTab.JADWAL
+                "TUGAS" -> currentTab = NavigationTab.TUGAS
+                "ALARM" -> currentTab = NavigationTab.ALARM
+            }
+        }
+    }
 
     // Request notification permission if needed (Android 13+)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(

@@ -53,9 +53,11 @@ class TaskWidgetProvider : AppWidgetProvider() {
                 .sortedBy { it.deadlineMillis }
 
             val views = RemoteViews(context.packageName, R.layout.widget_task)
-            val openIntent = Intent(context, MainActivity::class.java)
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                putExtra("ROUTE", "TUGAS")
+            }
             val pendingIntent = PendingIntent.getActivity(
-                context, 0, openIntent,
+                context, 1004, openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_task_root, pendingIntent)

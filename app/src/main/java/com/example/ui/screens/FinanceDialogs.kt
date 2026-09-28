@@ -118,7 +118,8 @@ fun AddTransactionDialog(
     onAddCategory: (String, String, TransactionType) -> Unit
 ) {
     val context = LocalContext.current
-    var transactionType by remember { mutableStateOf(initialType) }
+    var activeTabNum by remember { mutableIntStateOf(if (initialType == TransactionType.PEMASUKAN) 1 else if (initialType == TransactionType.TARIK_TUNAI || initialType == TransactionType.SETOR_TUNAI) 2 else 0) }
+
     var amountDigits by remember { mutableStateOf("") }
     var accountType by remember { mutableStateOf(AccountType.CASH) }
     var transferType by remember { mutableStateOf(TransactionType.TARIK_TUNAI) }
@@ -126,9 +127,38 @@ fun AddTransactionDialog(
     var notes by remember { mutableStateOf("") }
     var selectedTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
+    var transactionType by remember { mutableStateOf(initialType) }
     var selectedMainCategory by remember { mutableStateOf("") }
     var selectedSubCategory by remember { mutableStateOf("") }
     var customSubCategoryInput by remember { mutableStateOf("") }
+
+    // Predefined premium lists
+    val expenseMap = remember {
+        mapOf(
+            "🍔 Makanan & Minuman" to listOf("Makan Harian", "Jajanan/Kopi", "Bahan Masak", "Galon/LPG"),
+            "🏠 Kebutuhan Kost" to listOf("Sewa Kost", "Listrik/Air", "Perlengkapan Mandi & Cuci", "Kebersihan"),
+            "📚 Akademik & Kuliah" to listOf("UKT/SPP", "Buku & Alat Tulis", "Fotokopi/Cetak", "Kas/Iuran"),
+            "🚗 Transportasi" to listOf("Bensin", "Ojek Online", "Angkutan Umum", "Servis Kendaraan"),
+            "☕ Hiburan & Pribadi" to listOf("Paket Data/WiFi", "Langganan Streaming", "Hangout", "Skincare/Self-care"),
+            "💊 Kesehatan & Lainnya" to listOf("Obat/Vitamin", "Darurat", "Sedekah/Donor")
+        )
+    }
+
+    val incomeList = remember {
+        listOf(
+            "💵 Kiriman Orang Tua / Keluarga",
+            "💼 Gaji / Penghasilan",
+            "🎓 Beasiswa",
+            "🎁 Hadiah / Angpao / Bonus",
+            "🛍️ Penjualan Barang Bekas / Thrifting",
+            "📈 Pengembalian Utang",
+            "📦 Lainnya"
+        )
+    }
+
+    var selectedExpenseCategory by remember { mutableStateOf(expenseMap.keys.first()) }
+    var selectedExpenseSubCategory by remember { mutableStateOf(expenseMap.values.first().first()) }
+    var selectedIncomeCategory by remember { mutableStateOf(incomeList.first()) }
 
     var showNewCategoryDialog by remember { mutableStateOf(false) }
 

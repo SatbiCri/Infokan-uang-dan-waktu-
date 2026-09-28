@@ -200,6 +200,12 @@ class InfokanViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun updateBudget(budget: BudgetEntity) {
+        viewModelScope.launch {
+            repository.updateBudget(budget)
+        }
+    }
+
     fun deleteBudget(id: Long) {
         viewModelScope.launch {
             repository.deleteBudget(id)
