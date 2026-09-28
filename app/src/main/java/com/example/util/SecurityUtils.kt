@@ -1,7 +1,10 @@
 package com.example.util
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -47,15 +50,27 @@ object SecurityUtils {
     }
 
     fun sendIdToDeveloper(context: Context, deviceId: String) {
-        val message = "Halo Developer Infokan,\nSaya ingin meminta kode aktivasi untuk ID Perangkat saya:\n\nID: $deviceId\n\nMohon bantuannya, terima kasih!"
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, message)
-            putExtra(Intent.EXTRA_SUBJECT, "Permintaan Kode Aktivasi Infokan")
-            type = "text/plain"
+        try {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Infokan Device ID", deviceId)
+            clipboard.setPrimaryClip(clip)
+
+            val url = "https://wa.me/message/PRBQXSIM2V5WP1?src=qr"
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val message = "Halo Developer Infokan,\nSaya ingin meminta kode aktivasi untuk ID Perangkat saya:\n\nID: $deviceId\n\nMohon bantuannya, terima kasih!"
+            val sendIntent: Intent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, message)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "Kirim ID ke Developer via...")
+            shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(shareIntent)
         }
-        val shareIntent = Intent.createChooser(sendIntent, "Kirim ID ke Developer via...")
-        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(shareIntent)
     }
 }

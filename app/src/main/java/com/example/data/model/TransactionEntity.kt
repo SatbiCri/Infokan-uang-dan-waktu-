@@ -22,6 +22,7 @@ data class TransactionEntity(
     val amount: Long,
     val accountType: AccountType, // for Pengeluaran/Pemasukan: source/dest
     val category: String, // e.g. "Makan dan Minuman", "Uang Saku"
+    val subCategory: String = "", // e.g. "Makan Siang", "Bensin"
     val bankName: String = "", // e.g. "BCA", "BRI", "Mandiri"
     val notes: String = "",
     val timestamp: Long = System.currentTimeMillis(),

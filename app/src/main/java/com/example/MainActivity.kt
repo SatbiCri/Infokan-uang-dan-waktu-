@@ -75,6 +75,8 @@ fun MainApp(viewModel: InfokanViewModel = viewModel()) {
     val schedules by viewModel.allSchedules.collectAsStateWithLifecycle()
     val tasks by viewModel.allTasks.collectAsStateWithLifecycle()
     val alarms by viewModel.allAlarms.collectAsStateWithLifecycle()
+    val categories by viewModel.allCategories.collectAsStateWithLifecycle()
+    val budgetAlert by viewModel.budgetAlert.collectAsStateWithLifecycle()
 
     var currentTab by remember { mutableStateOf(NavigationTab.KEUANGAN) }
 
@@ -259,15 +261,25 @@ fun MainApp(viewModel: InfokanViewModel = viewModel()) {
                             monthExpenses = monthExpenses,
                             budgets = budgets,
                             budgetSpending = budgetSpending,
+                            categories = categories,
+                            budgetAlert = budgetAlert,
+                            onClearBudgetAlert = { viewModel.clearBudgetAlert() },
                             onUpdateBalances = { cash, debit -> viewModel.updateBalances(cash, debit) },
-                            onAddTransaction = { type, amount, accountType, category, bank, notes, time ->
-                                viewModel.addTransaction(type, amount, accountType, category, bank, notes, time)
+                            onAddTransaction = { type, amount, accountType, category, bank, notes, time, subCat ->
+                                viewModel.addTransaction(type, amount, accountType, category, bank, notes, time, subCat)
+                            },
+                            onUpdateTransaction = { oldTrx, newTrx ->
+                                viewModel.updateTransaction(oldTrx, newTrx)
                             },
                             onDeleteTransaction = { viewModel.deleteTransaction(it) },
                             onAddBudget = { category, period, amount ->
                                 viewModel.addBudget(category, period, amount)
                             },
-                            onDeleteBudget = { viewModel.deleteBudget(it) }
+                            onDeleteBudget = { viewModel.deleteBudget(it) },
+                            onAddCategory = { main, sub, type ->
+                                viewModel.addCategory(main, sub, type)
+                            },
+                            onDeleteCategory = { viewModel.deleteCategory(it) }
                         )
                     }
 

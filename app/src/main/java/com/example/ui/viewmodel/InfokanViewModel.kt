@@ -65,9 +65,18 @@ class InfokanViewModel(application: Application) : AndroidViewModel(application)
     val allAlarms: StateFlow<List<AlarmEntity>> = repository.allAlarms
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allCategories: StateFlow<List<CategoryEntity>> = repository.allCategories
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Spending map for each budget category
     private val _budgetSpending = MutableStateFlow<Map<String, Long>>(emptyMap())
     val budgetSpending: StateFlow<Map<String, Long>> = _budgetSpending.asStateFlow()
+
+    val budgetAlert = MutableStateFlow<String?>(null)
+
+    fun clearBudgetAlert() {
+        budgetAlert.value = null
+    }
 
     init {
         // Observe transactions and budgets to recalculate spent amounts
@@ -124,18 +133,51 @@ class InfokanViewModel(application: Application) : AndroidViewModel(application)
         category: String,
         bankName: String = "",
         notes: String = "",
-        timestamp: Long = System.currentTimeMillis()
+        timestamp: Long = System.currentTimeMillis(),
+        subCategory: String = "",
+        onBudgetAlert: ((String) -> Unit)? = null
     ) {
         viewModelScope.launch {
-            repository.addTransaction(
+            val alert = repository.addTransaction(
                 type = type,
                 amount = amount,
                 accountType = accountType,
                 category = category,
                 bankName = bankName,
                 notes = notes,
-                timestamp = timestamp
+                timestamp = timestamp,
+                subCategory = subCategory
             )
+            if (alert != null) {
+                budgetAlert.value = alert
+                onBudgetAlert?.invoke(alert)
+            }
+        }
+    }
+
+    fun updateTransaction(
+        oldTrx: TransactionEntity,
+        newTrx: TransactionEntity,
+        onBudgetAlert: ((String) -> Unit)? = null
+    ) {
+        viewModelScope.launch {
+            val alert = repository.updateTransaction(oldTrx, newTrx)
+            if (alert != null) {
+                budgetAlert.value = alert
+                onBudgetAlert?.invoke(alert)
+            }
+        }
+    }
+
+    fun addCategory(main: String, sub: String, type: TransactionType) {
+        viewModelScope.launch {
+            repository.addCategory(main, sub, type)
+        }
+    }
+
+    fun deleteCategory(id: Long) {
+        viewModelScope.launch {
+            repository.deleteCategory(id)
         }
     }
 

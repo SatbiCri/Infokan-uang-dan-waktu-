@@ -49,16 +49,24 @@ fun FinanceScreen(
     monthExpenses: Long,
     budgets: List<BudgetEntity>,
     budgetSpending: Map<String, Long>,
+    categories: List<CategoryEntity>,
+    budgetAlert: String?,
+    onClearBudgetAlert: () -> Unit,
     onUpdateBalances: (Long, Long) -> Unit,
-    onAddTransaction: (TransactionType, Long, AccountType, String, String, String, Long) -> Unit,
+    onAddTransaction: (TransactionType, Long, AccountType, String, String, String, Long, String) -> Unit,
+    onUpdateTransaction: (TransactionEntity, TransactionEntity) -> Unit,
     onDeleteTransaction: (TransactionEntity) -> Unit,
     onAddBudget: (String, BudgetPeriod, Long) -> Unit,
-    onDeleteBudget: (Long) -> Unit
+    onDeleteBudget: (Long) -> Unit,
+    onAddCategory: (String, String, TransactionType) -> Unit,
+    onDeleteCategory: (Long) -> Unit
 ) {
     var showBalanceDialog by remember { mutableStateOf(false) }
     var showTransactionDialog by remember { mutableStateOf(false) }
+    var editingTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
     var selectedTransactionType by remember { mutableStateOf(TransactionType.PENGELUARAN) }
     var showBudgetDialog by remember { mutableStateOf(false) }
+    var showCategoryManagerDialog by remember { mutableStateOf(false) }
 
     val cashBalance = userAccount?.cashBalance ?: 0L
     val debitBalance = userAccount?.debitBalance ?: 0L
@@ -296,6 +304,17 @@ fun FinanceScreen(
                             onClick = {
                                 selectedTransactionType = TransactionType.TARIK_TUNAI
                                 showTransactionDialog = true
+                            }
+                        )
+
+                        QuickActionButton(
+                            icon = Icons.Default.Category,
+                            label = "Kategori",
+                            color = Color(0xFF673AB7),
+                            bgColor = Color(0xFFEDE7F6),
+                            tag = "quick_category_btn",
+                            onClick = {
+                                showCategoryManagerDialog = true
                             }
                         )
                     }
@@ -719,6 +738,7 @@ fun FinanceScreen(
                 items(transactions, key = { it.id }) { trx ->
                     TransactionItemCard(
                         transaction = trx,
+                        onEdit = { editingTransaction = trx },
                         onDelete = { onDeleteTransaction(trx) }
                     )
                 }
@@ -746,20 +766,62 @@ fun FinanceScreen(
     if (showTransactionDialog) {
         AddTransactionDialog(
             initialType = selectedTransactionType,
+            categories = categories,
             onDismiss = { showTransactionDialog = false },
-            onSave = { type, amount, accountType, category, bank, notes, time ->
-                onAddTransaction(type, amount, accountType, category, bank, notes, time)
+            onSave = { type, amount, accountType, category, bank, notes, time, subCat ->
+                onAddTransaction(type, amount, accountType, category, bank, notes, time, subCat)
                 showTransactionDialog = false
-            }
+            },
+            onAddCategory = onAddCategory
+        )
+    }
+
+    if (editingTransaction != null) {
+        EditTransactionDialog(
+            transaction = editingTransaction!!,
+            categories = categories,
+            onDismiss = { editingTransaction = null },
+            onSave = { updatedTrx ->
+                onUpdateTransaction(editingTransaction!!, updatedTrx)
+                editingTransaction = null
+            },
+            onAddCategory = onAddCategory
         )
     }
 
     if (showBudgetDialog) {
         AddBudgetDialog(
+            categories = categories,
             onDismiss = { showBudgetDialog = false },
             onSave = { category, period, amount ->
                 onAddBudget(category, period, amount)
                 showBudgetDialog = false
+            }
+        )
+    }
+
+    if (showCategoryManagerDialog) {
+        CategoryManagementDialog(
+            categories = categories,
+            onDismiss = { showCategoryManagerDialog = false },
+            onAddCategory = onAddCategory,
+            onDeleteCategory = onDeleteCategory
+        )
+    }
+
+    if (budgetAlert != null) {
+        AlertDialog(
+            onDismissRequest = onClearBudgetAlert,
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = RedExpense) },
+            title = { Text("Peringatan Anggaran!", fontWeight = FontWeight.Bold, color = RedExpense) },
+            text = { Text(budgetAlert) },
+            confirmButton = {
+                Button(
+                    onClick = onClearBudgetAlert,
+                    colors = ButtonDefaults.buttonColors(containerColor = RedExpense)
+                ) {
+                    Text("Saya Mengerti")
+                }
             }
         )
     }
@@ -843,6 +905,7 @@ fun ExpenseSummaryCard(
 @Composable
 fun TransactionItemCard(
     transaction: TransactionEntity,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val isExpense = transaction.type == TransactionType.PENGELUARAN
@@ -895,11 +958,19 @@ fun TransactionItemCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val categoryDisplay = if (transaction.subCategory.isNotBlank()) {
+                        "${transaction.category} • ${transaction.subCategory}"
+                    } else {
+                        transaction.category
+                    }
                     Text(
-                        text = transaction.category,
+                        text = categoryDisplay,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
@@ -946,6 +1017,8 @@ fun TransactionItemCard(
                 )
             }
 
+            Spacer(modifier = Modifier.width(8.dp))
+
             Column(horizontalAlignment = Alignment.End) {
                 val prefix = if (isExpense) "- " else if (isIncome) "+ " else ""
                 val amountColor = if (isExpense) RedExpense else if (isIncome) GreenSuccess else BluePrimary
@@ -957,436 +1030,34 @@ fun TransactionItemCard(
                     color = amountColor
                 )
 
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = "Hapus",
-                        tint = TextSecondaryLight,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Transaksi",
+                            tint = BluePrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Hapus",
+                            tint = TextSecondaryLight,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
     }
-}
-
-// ----------------- DIALOGS -----------------
-
-@Composable
-fun SetBalanceDialog(
-    currentCash: Long,
-    currentDebit: Long,
-    onDismiss: () -> Unit,
-    onSave: (Long, Long) -> Unit
-) {
-    var cashStr by remember { mutableStateOf(currentCash.toString()) }
-    var debitStr by remember { mutableStateOf(currentDebit.toString()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Atur Saldo Cash & Debit", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Perbarui nominal saldo tunai dan kartu debit Anda sesuai keadaan riil.",
-                    fontSize = 12.sp,
-                    color = TextSecondaryLight
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                OutlinedTextField(
-                    value = cashStr,
-                    onValueChange = { cashStr = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Jumlah Uang Cash (Rp)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("cash_input_field")
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = debitStr,
-                    onValueChange = { debitStr = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Jumlah Kartu Debit (Rp)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("debit_input_field")
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val cash = cashStr.toLongOrNull() ?: 0L
-                    val debit = debitStr.toLongOrNull() ?: 0L
-                    onSave(cash, debit)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
-            ) {
-                Text("Simpan")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Batal")
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddTransactionDialog(
-    initialType: TransactionType,
-    onDismiss: () -> Unit,
-    onSave: (TransactionType, Long, AccountType, String, String, String, Long) -> Unit
-) {
-    var transactionType by remember { mutableStateOf(initialType) }
-    var amountStr by remember { mutableStateOf("") }
-    var accountType by remember { mutableStateOf(AccountType.CASH) }
-    var category by remember { mutableStateOf("") }
-    var bankName by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var transferType by remember { mutableStateOf(TransactionType.TARIK_TUNAI) } // Debit->Cash or Cash->Debit
-    val timestamp by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    val expenseCategories = listOf(
-        "Makan dan Minuman",
-        "Transportasi",
-        "Kebutuhan Kuliah",
-        "Belanja",
-        "Lain-lain"
-    )
-
-    val incomeCategories = listOf(
-        "Uang Saku",
-        "Uang Orang Tua",
-        "Gaji/Pemasukan",
-        "Hadiah",
-        "Lain-lain"
-    )
-
-    // Set default category
-    LaunchedEffect(transactionType) {
-        if (transactionType == TransactionType.PENGELUARAN) {
-            category = expenseCategories[0]
-        } else if (transactionType == TransactionType.PEMASUKAN) {
-            category = incomeCategories[0]
-        } else {
-            category = if (transferType == TransactionType.TARIK_TUNAI) "Tarik Tunai" else "Setor Tunai"
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Catat Transaksi Real-Time", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        },
-        text = {
-            Column(modifier = Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-                // Type selector
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    FilterChip(
-                        selected = transactionType == TransactionType.PENGELUARAN,
-                        onClick = { transactionType = TransactionType.PENGELUARAN },
-                        label = { Text("Pengeluaran", fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = transactionType == TransactionType.PEMASUKAN,
-                        onClick = { transactionType = TransactionType.PEMASUKAN },
-                        label = { Text("Pemasukan", fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = transactionType == TransactionType.TARIK_TUNAI || transactionType == TransactionType.SETOR_TUNAI,
-                        onClick = { transactionType = transferType },
-                        label = { Text("Tarik/Setor", fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Real-time Date and Time display
-                Surface(
-                    color = BlueLight,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.AccessTime, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Waktu Real-time: ${DateTimeUtils.formatDateTime(timestamp)}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = BluePrimaryVariant
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Nominal
-                OutlinedTextField(
-                    value = amountStr,
-                    onValueChange = { amountStr = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Nominal Uang (Rp)") },
-                    placeholder = { Text("contoh: 25000") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("trx_amount_input")
-                )
-
-                if (amountStr.isNotBlank()) {
-                    val preview = amountStr.toLongOrNull() ?: 0L
-                    Text(
-                        text = "Format: ${CurrencyUtils.formatRupiah(preview)}",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BluePrimary,
-                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // If Pengeluaran or Pemasukan: Cash vs Debit selector
-                if (transactionType == TransactionType.PENGELUARAN || transactionType == TransactionType.PEMASUKAN) {
-                    Text(
-                        text = if (transactionType == TransactionType.PENGELUARAN) "Metode Pembayaran:" else "Tujuan Masuk:",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = accountType == AccountType.CASH,
-                            onClick = { accountType = AccountType.CASH },
-                            label = { Text("💵 Uang Cash") }
-                        )
-                        FilterChip(
-                            selected = accountType == AccountType.DEBIT,
-                            onClick = { accountType = AccountType.DEBIT },
-                            label = { Text("💳 Kartu Debit") }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(text = "Pilih Kategori:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    val catList = if (transactionType == TransactionType.PENGELUARAN) expenseCategories else incomeCategories
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        items(catList) { cat ->
-                            FilterChip(
-                                selected = category == cat,
-                                onClick = { category = cat },
-                                label = { Text(cat, fontSize = 11.sp) }
-                            )
-                        }
-                    }
-                } else {
-                    // Tarik / Setor Tunai
-                    Text(text = "Jenis Tarik / Setor:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = transferType == TransactionType.TARIK_TUNAI,
-                            onClick = {
-                                transferType = TransactionType.TARIK_TUNAI
-                                transactionType = TransactionType.TARIK_TUNAI
-                                category = "Tarik Tunai"
-                            },
-                            label = { Text("Tarik Tunai (Debit ➔ Cash)") }
-                        )
-                        FilterChip(
-                            selected = transferType == TransactionType.SETOR_TUNAI,
-                            onClick = {
-                                transferType = TransactionType.SETOR_TUNAI
-                                transactionType = TransactionType.SETOR_TUNAI
-                                category = "Setor Tunai"
-                            },
-                            label = { Text("Setor Tunai (Cash ➔ Debit)") }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = bankName,
-                        onValueChange = { bankName = it },
-                        label = { Text("Nama Bank / ATM (Tujuan/Asal)") },
-                        placeholder = { Text("contoh: BCA, BRI, Mandiri, BNI") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Notes
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Catatan Pengeluaran/Pemasukan") },
-                    placeholder = { Text("contoh: Nasi padang + es teh") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 2
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val amount = amountStr.toLongOrNull() ?: 0L
-                    if (amount > 0) {
-                        val finalType = if (transactionType == TransactionType.PENGELUARAN || transactionType == TransactionType.PEMASUKAN) {
-                            transactionType
-                        } else {
-                            transferType
-                        }
-                        onSave(finalType, amount, accountType, category, bankName, notes, timestamp)
-                    }
-                },
-                enabled = amountStr.isNotBlank() && (amountStr.toLongOrNull() ?: 0L) > 0L,
-                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
-            ) {
-                Text("Simpan Transaksi")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Batal")
-            }
-        }
-    )
-}
-
-@Composable
-fun AddBudgetDialog(
-    onDismiss: () -> Unit,
-    onSave: (String, BudgetPeriod, Long) -> Unit
-) {
-    val categories = listOf(
-        "Makan dan Minuman",
-        "Transportasi",
-        "Kebutuhan Kuliah",
-        "Belanja",
-        "Lain-lain"
-    )
-    var selectedCategory by remember { mutableStateOf(categories[0]) }
-    var selectedPeriod by remember { mutableStateOf(BudgetPeriod.BULANAN) }
-    var limitStr by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Tetapkan Anggaran Baru", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Tetapkan anggaran untuk mengontrol pengeluaran. Anda akan mendapat alarm/notifikasi saat anggaran telah penuh atau lewat.",
-                    fontSize = 11.sp,
-                    color = TextSecondaryLight
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text("Kategori:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    items(categories) { cat ->
-                        FilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(cat, fontSize = 11.sp) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text("Periode Anggaran:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = selectedPeriod == BudgetPeriod.HARIAN,
-                        onClick = { selectedPeriod = BudgetPeriod.HARIAN },
-                        label = { Text("Harian") }
-                    )
-                    FilterChip(
-                        selected = selectedPeriod == BudgetPeriod.BULANAN,
-                        onClick = { selectedPeriod = BudgetPeriod.BULANAN },
-                        label = { Text("Bulanan") }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = limitStr,
-                    onValueChange = { limitStr = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Batas Maksimal Anggaran (Rp)") },
-                    placeholder = { Text("contoh: 500000") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (limitStr.isNotBlank()) {
-                    val preview = limitStr.toLongOrNull() ?: 0L
-                    Text(
-                        text = "Batas: ${CurrencyUtils.formatRupiah(preview)}",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BluePrimary,
-                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val limit = limitStr.toLongOrNull() ?: 0L
-                    if (limit > 0) {
-                        onSave(selectedCategory, selectedPeriod, limit)
-                    }
-                },
-                enabled = limitStr.isNotBlank() && (limitStr.toLongOrNull() ?: 0L) > 0L,
-                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
-            ) {
-                Text("Simpan Anggaran")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Batal")
-            }
-        }
-    )
 }

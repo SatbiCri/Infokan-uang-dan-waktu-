@@ -3,8 +3,10 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,9 +39,18 @@ fun ActivationScreen(
     val context = LocalContext.current
     var inputCode by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showHelperKey by remember { mutableStateOf(false) }
 
-    val calculatedKey = remember(deviceId) { SecurityUtils.calculateActivationKey(deviceId) }
+    // Secret Developer Mode trigger (Tap shield icon 5 times)
+    var logoTapCount by remember { mutableIntStateOf(0) }
+    var lastTapTime by remember { mutableLongStateOf(0L) }
+    var showDevPinDialog by remember { mutableStateOf(false) }
+    var showDevGeneratorDialog by remember { mutableStateOf(false) }
+    var devPinInput by remember { mutableStateOf("") }
+    var devPinError by remember { mutableStateOf<String?>(null) }
+
+    // Dev Generator state
+    var devTargetDeviceId by remember { mutableStateOf(deviceId) }
+    var devGeneratedCode by remember { mutableStateOf(SecurityUtils.calculateActivationKey(deviceId)) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -69,7 +80,25 @@ fun ActivationScreen(
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)),
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .clickable {
+                                val now = System.currentTimeMillis()
+                                if (now - lastTapTime < 1500) {
+                                    logoTapCount++
+                                } else {
+                                    logoTapCount = 1
+                                }
+                                lastTapTime = now
+
+                                if (logoTapCount >= 5) {
+                                    logoTapCount = 0
+                                    showDevPinDialog = true
+                                    Toast.makeText(context, "🔓 Mode Rahasia Developer Terbuka", Toast.LENGTH_SHORT).show()
+                                } else if (logoTapCount >= 2) {
+                                    val remaining = 5 - logoTapCount
+                                    Toast.makeText(context, "$remaining ketukan lagi untuk Mode Developer", Toast.LENGTH_SHORT).show()
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -286,57 +315,7 @@ fun ActivationScreen(
                             Text("Aktivasi Sekarang", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Self-activation / Offline testing assistant
-                        TextButton(
-                            onClick = { showHelperKey = !showHelperKey },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        ) {
-                            Icon(
-                                imageVector = if (showHelperKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (showHelperKey) "Sembunyikan Bantuan Aktivasi" else "Bantuan / Kode Aktivasi Uji Coba",
-                                fontSize = 12.sp
-                            )
-                        }
-
-                        if (showHelperKey) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = "Kunci Offline Perangkat Ini:",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = calculatedKey,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = BluePrimary
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Button(
-                                        onClick = {
-                                            inputCode = calculatedKey
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BluePrimaryVariant),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Pakai Kode Ini Langsung", fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
@@ -351,5 +330,250 @@ fun ActivationScreen(
                 )
             }
         }
+    }
+
+    // Developer Secret PIN Dialog
+    if (showDevPinDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDevPinDialog = false
+                devPinInput = ""
+                devPinError = null
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AdminPanelSettings,
+                        contentDescription = null,
+                        tint = BluePrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Autentikasi Pengembang", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Area khusus developer. Masukkan PIN keamanan developer (Default PIN: 2026):",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = devPinInput,
+                        onValueChange = {
+                            devPinInput = it
+                            devPinError = null
+                        },
+                        label = { Text("PIN Developer") },
+                        placeholder = { Text("Ketik 2026") },
+                        singleLine = true,
+                        isError = devPinError != null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (devPinError != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = devPinError ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (devPinInput.trim() == "2026" || devPinInput.trim() == "1234" || devPinInput.trim() == "dev") {
+                            showDevPinDialog = false
+                            devPinInput = ""
+                            devPinError = null
+                            devTargetDeviceId = deviceId
+                            devGeneratedCode = SecurityUtils.calculateActivationKey(deviceId)
+                            showDevGeneratorDialog = true
+                        } else {
+                            devPinError = "PIN Salah! Akses ditolak."
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                ) {
+                    Text("Masuk")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDevPinDialog = false
+                    devPinInput = ""
+                    devPinError = null
+                }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
+    // Developer Activation Code Generator Dialog
+    if (showDevGeneratorDialog) {
+        AlertDialog(
+            onDismissRequest = { showDevGeneratorDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Code,
+                        contentDescription = null,
+                        tint = BluePrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Developer Code Generator", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Generator resmi kode aktivasi offline berbasis hash SHA-256 ID Perangkat pengguna.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = devTargetDeviceId,
+                        onValueChange = { input ->
+                            devTargetDeviceId = input.uppercase()
+                            if (devTargetDeviceId.isNotBlank()) {
+                                devGeneratedCode = SecurityUtils.calculateActivationKey(devTargetDeviceId.trim())
+                            }
+                        },
+                        label = { Text("ID Perangkat Target") },
+                        placeholder = { Text("INF-XXXX-YYYY") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                devTargetDeviceId = deviceId
+                                devGeneratedCode = SecurityUtils.calculateActivationKey(deviceId)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.PhoneAndroid,
+                                    contentDescription = "Gunakan ID HP Ini",
+                                    tint = BluePrimary
+                                )
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Result Box
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "KODE AKTIVASI RESMI",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BluePrimary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = devGeneratedCode,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("Kode Aktivasi", devGeneratedCode)
+                                        clipboard.setPrimaryClip(clip)
+                                        Toast.makeText(context, "Kode disalin: $devGeneratedCode", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ContentCopy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Salin", fontSize = 12.sp)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val shareText = "Halo, ini kode aktivasi Infokan resmi untuk perangkat ($devTargetDeviceId):\n\n$devGeneratedCode\n\nSilakan masukkan di aplikasi Infokan Anda."
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, shareText)
+                                            type = "text/plain"
+                                        }
+                                        val chooser = Intent.createChooser(sendIntent, "Kirim Kode ke Pengguna...")
+                                        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        context.startActivity(chooser)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Send,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Kirim", fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Direct activate button for current device
+                    if (devTargetDeviceId == deviceId) {
+                        Button(
+                            onClick = {
+                                showDevGeneratorDialog = false
+                                Toast.makeText(context, "Aktivasi Developer Berhasil!", Toast.LENGTH_SHORT).show()
+                                onActivated(devGeneratedCode)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FlashOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("⚡ Aktifkan HP Ini Langsung", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDevGeneratorDialog = false }) {
+                    Text("Tutup")
+                }
+            }
+        )
     }
 }

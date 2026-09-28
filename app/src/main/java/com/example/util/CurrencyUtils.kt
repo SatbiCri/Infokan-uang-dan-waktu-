@@ -51,4 +51,16 @@ object CurrencyUtils {
         val cleanDigits = input.filter { it.isDigit() }
         return cleanDigits.toLongOrNull() ?: 0L
     }
+
+    /**
+     * Real-time formatter for text fields as the user types
+     * e.g. "50000" -> "Rp 50.000"
+     * Empty -> ""
+     */
+    fun formatInputAsRupiah(input: String): String {
+        val cleanDigits = input.filter { it.isDigit() }
+        if (cleanDigits.isEmpty()) return ""
+        val number = cleanDigits.toLongOrNull() ?: return ""
+        return formatRupiah(number, withPrefix = true)
+    }
 }

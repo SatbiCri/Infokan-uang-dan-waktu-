@@ -43,8 +43,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/widget_inner_card"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
+            android:paddingLeft="8dp"
+            android:paddingTop="4dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="4dp"
             android:text="Hari ini"
             android:textColor="#B0C4DE"
             android:textSize="11sp" />
@@ -61,6 +63,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/widget_inner_card"
             android:orientation="vertical"
             android:padding="6dp">
@@ -83,10 +86,6 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
-
-        <View
-            android:layout_width="6dp"
-            android:layout_height="match_parent" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -167,6 +166,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/widget_inner_card"
             android:orientation="vertical"
             android:padding="6dp">
@@ -200,10 +200,6 @@
                 android:textColor="#D0D8E0"
                 android:textSize="9sp" />
         </LinearLayout>
-
-        <View
-            android:layout_width="6dp"
-            android:layout_height="match_parent" />
 
         <!-- Alarm, Jadwal & Tugas -->
         <LinearLayout

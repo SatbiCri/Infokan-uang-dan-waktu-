@@ -308,13 +308,10 @@ fun AlarmItemCard(
                     IconButton(
                         onClick = {
                             if (isTestingSound) {
-                                ringtoneInstance?.stop()
+                                com.example.util.AlarmSoundManager.stopAlarm(context)
                                 isTestingSound = false
                             } else {
-                                val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                                val ringtone = RingtoneManager.getRingtone(context, uri)
-                                ringtoneInstance = ringtone
-                                ringtone?.play()
+                                com.example.util.AlarmSoundManager.playLoudAlarm(context, vibrate = alarm.vibrate)
                                 isTestingSound = true
                             }
                         },
@@ -446,24 +443,70 @@ fun AddAlarmDialog(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // Beautiful, responsive circular day toggles that never wrap or break layout
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val dayCodes = listOf("S", "S", "R", "K", "J", "S", "M")
                     for (i in 1..7) {
                         val isChecked = dayMap[i] == true
-                        FilterChip(
-                            selected = isChecked,
-                            onClick = { dayMap[i] = !isChecked },
-                            label = { Text(dayNames[i - 1], fontSize = 10.sp) },
-                            modifier = Modifier.weight(1f).padding(horizontal = 1.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (isChecked) BluePrimary else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { dayMap[i] = !isChecked },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dayCodes[i - 1],
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isChecked) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Quick presets
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    AssistChip(
+                        onClick = {
+                            for (i in 1..7) dayMap[i] = true
+                        },
+                        label = { Text("Setiap Hari", fontSize = 10.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    AssistChip(
+                        onClick = {
+                            for (i in 1..5) dayMap[i] = true
+                            dayMap[6] = false
+                            dayMap[7] = false
+                        },
+                        label = { Text("Sen - Jum", fontSize = 10.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    AssistChip(
+                        onClick = {
+                            for (i in 1..5) dayMap[i] = false
+                            dayMap[6] = true
+                            dayMap[7] = true
+                        },
+                        label = { Text("Sab - Min", fontSize = 10.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

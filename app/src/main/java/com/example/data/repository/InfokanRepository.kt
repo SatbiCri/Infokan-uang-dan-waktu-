@@ -20,6 +20,7 @@ class InfokanRepository(
     private val scheduleDao = database.scheduleDao()
     private val taskDao = database.taskDao()
     private val alarmDao = database.alarmDao()
+    private val categoryDao = database.categoryDao()
 
     val userAccount: Flow<UserAccount?> = userDao.getUserAccount()
     val allTransactions: Flow<List<TransactionEntity>> = transactionDao.getAllTransactions()
@@ -28,6 +29,7 @@ class InfokanRepository(
     val allSchedules: Flow<List<ScheduleEntity>> = scheduleDao.getAllSchedules()
     val allTasks: Flow<List<TaskEntity>> = taskDao.getAllTasks()
     val allAlarms: Flow<List<AlarmEntity>> = alarmDao.getAllAlarms()
+    val allCategories: Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
 
     fun getTransactionsByMonth(monthYear: String): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByMonth(monthYear)
@@ -49,36 +51,10 @@ class InfokanRepository(
                 deviceId = deviceId,
                 isActivated = false,
                 userName = "Anak Kost Mandiri",
-                cashBalance = 250000L,
-                debitBalance = 1750000L
+                cashBalance = 0L,
+                debitBalance = 0L
             )
             userDao.insertUser(newUser)
-
-            // Seed initial sensible budget for student/kost
-            budgetDao.insertBudget(
-                BudgetEntity(
-                    category = "Makan dan Minuman",
-                    period = BudgetPeriod.BULANAN,
-                    limitAmount = 1200000L,
-                    notes = "Tetapkan anggaran untuk mengontrol pengeluaran"
-                )
-            )
-            budgetDao.insertBudget(
-                BudgetEntity(
-                    category = "Transportasi",
-                    period = BudgetPeriod.BULANAN,
-                    limitAmount = 300000L,
-                    notes = "Tetapkan anggaran untuk mengontrol pengeluaran"
-                )
-            )
-            budgetDao.insertBudget(
-                BudgetEntity(
-                    category = "Kebutuhan Kuliah",
-                    period = BudgetPeriod.BULANAN,
-                    limitAmount = 500000L,
-                    notes = "Buku, fotokopi, alat tulis dan perlengkapan"
-                )
-            )
 
             // Seed initial alarms
             val defaultAlarms = listOf(
@@ -112,6 +88,45 @@ class InfokanRepository(
                 )
             }
         }
+        seedDefaultCategoriesIfNeeded()
+    }
+
+    suspend fun seedDefaultCategoriesIfNeeded() = withContext(Dispatchers.IO) {
+        val existing = categoryDao.getAllCategoriesDirect()
+        if (existing.isEmpty()) {
+            val defaults = listOf(
+                CategoryEntity(mainCategory = "Makan dan Minuman", subCategory = "Makan Siang & Malam", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Makan dan Minuman", subCategory = "Sarapan", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Makan dan Minuman", subCategory = "Kopi & Nongkrong", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Makan dan Minuman", subCategory = "Camilan & Jajan", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Transportasi", subCategory = "Bensin / BBM", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Transportasi", subCategory = "Ojek / Taksi Online", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Transportasi", subCategory = "Parkir", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Kebutuhan Kuliah", subCategory = "Buku & Alat Tulis", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Kebutuhan Kuliah", subCategory = "Fotokopi & Print", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Kebutuhan Kuliah", subCategory = "Uang Kas & UKM", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Kebutuhan Kost", subCategory = "Sabun & Kebutuhan Mandi", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Kebutuhan Kost", subCategory = "Laundry", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Kebutuhan Kost", subCategory = "Token Listrik & Air", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Hiburan & Pribadi", subCategory = "Paket Data Internet", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Hiburan & Pribadi", subCategory = "Bioskop / Nonton", type = TransactionType.PENGELUARAN),
+                CategoryEntity(mainCategory = "Pemasukan", subCategory = "Uang Saku Orang Tua", type = TransactionType.PEMASUKAN),
+                CategoryEntity(mainCategory = "Pemasukan", subCategory = "Gaji / Upah Freelance", type = TransactionType.PEMASUKAN),
+                CategoryEntity(mainCategory = "Pemasukan", subCategory = "Beasiswa", type = TransactionType.PEMASUKAN),
+                CategoryEntity(mainCategory = "Pemasukan", subCategory = "Hadiah / Transfer Lain", type = TransactionType.PEMASUKAN)
+            )
+            for (cat in defaults) {
+                categoryDao.insertCategory(cat)
+            }
+        }
+    }
+
+    suspend fun addCategory(main: String, sub: String, type: TransactionType) = withContext(Dispatchers.IO) {
+        categoryDao.insertCategory(CategoryEntity(mainCategory = main.trim(), subCategory = sub.trim(), type = type))
+    }
+
+    suspend fun deleteCategory(id: Long) = withContext(Dispatchers.IO) {
+        categoryDao.deleteCategory(id)
     }
 
     suspend fun setActivated(key: String) = withContext(Dispatchers.IO) {
@@ -149,14 +164,16 @@ class InfokanRepository(
         category: String,
         bankName: String,
         notes: String,
-        timestamp: Long
-    ) = withContext(Dispatchers.IO) {
+        timestamp: Long,
+        subCategory: String = ""
+    ): String? = withContext(Dispatchers.IO) {
         val monthYear = DateTimeUtils.getMonthYear(timestamp)
         val transaction = TransactionEntity(
             type = type,
             amount = amount,
             accountType = accountType,
             category = category,
+            subCategory = subCategory,
             bankName = bankName,
             notes = notes,
             timestamp = timestamp,
@@ -166,6 +183,7 @@ class InfokanRepository(
 
         // Update User Cash / Debit balance
         val user = userDao.getUserAccountDirect()
+        var alertMessage: String? = null
         if (user != null) {
             var newCash = user.cashBalance
             var newDebit = user.debitBalance
@@ -229,15 +247,16 @@ class InfokanRepository(
                     val totalSpent = (transactionDao.getCategoryExpenseSince(category, startTime) ?: 0L)
                     if (totalSpent >= budget.limitAmount) {
                         val overAmount = totalSpent - budget.limitAmount
+                        alertMessage = if (overAmount > 0)
+                            "Pengeluaran $category telah melebihi batas sebesar Rp $overAmount!"
+                        else
+                            "Pengeluaran $category telah mencapai batas 100%!"
                         NotificationHelper.showNotification(
                             context = context,
                             notificationId = (budget.id + 9999).toInt(),
-                            channelId = NotificationHelper.CHANNEL_FINANCE,
+                            channelId = NotificationHelper.CHANNEL_ALARM,
                             title = "⚠️ Peringatan Anggaran: $category!",
-                            message = if (overAmount > 0)
-                                "Pengeluaran $category telah melebihi batas sebesar Rp $overAmount!"
-                            else
-                                "Pengeluaran $category telah mencapai batas 100%!",
+                            message = alertMessage,
                             playAlarmSound = user.notifyAlarmSound
                         )
                     }
@@ -246,6 +265,94 @@ class InfokanRepository(
         }
 
         InfokanWidgetProvider.updateAllWidgets(context)
+        alertMessage
+    }
+
+    suspend fun updateTransaction(
+        oldTrx: TransactionEntity,
+        newTrx: TransactionEntity
+    ): String? = withContext(Dispatchers.IO) {
+        val user = userDao.getUserAccountDirect()
+        var alertMessage: String? = null
+        if (user != null) {
+            var cash = user.cashBalance
+            var debit = user.debitBalance
+
+            // Revert old transaction balances
+            when (oldTrx.type) {
+                TransactionType.PENGELUARAN -> {
+                    if (oldTrx.accountType == AccountType.CASH) cash += oldTrx.amount
+                    else debit += oldTrx.amount
+                }
+                TransactionType.PEMASUKAN -> {
+                    if (oldTrx.accountType == AccountType.CASH) cash -= oldTrx.amount
+                    else debit -= oldTrx.amount
+                }
+                TransactionType.TARIK_TUNAI -> {
+                    cash -= oldTrx.amount
+                    debit += oldTrx.amount
+                }
+                TransactionType.SETOR_TUNAI -> {
+                    cash += oldTrx.amount
+                    debit -= oldTrx.amount
+                }
+            }
+
+            // Apply new transaction balances
+            when (newTrx.type) {
+                TransactionType.PENGELUARAN -> {
+                    if (newTrx.accountType == AccountType.CASH) cash -= newTrx.amount
+                    else debit -= newTrx.amount
+                }
+                TransactionType.PEMASUKAN -> {
+                    if (newTrx.accountType == AccountType.CASH) cash += newTrx.amount
+                    else debit += newTrx.amount
+                }
+                TransactionType.TARIK_TUNAI -> {
+                    cash += newTrx.amount
+                    debit -= newTrx.amount
+                }
+                TransactionType.SETOR_TUNAI -> {
+                    cash -= newTrx.amount
+                    debit += newTrx.amount
+                }
+            }
+            userDao.updateBalances(cash, debit)
+
+            val monthYear = DateTimeUtils.getMonthYear(newTrx.timestamp)
+            val updatedTrx = newTrx.copy(monthYear = monthYear)
+            transactionDao.updateTransaction(updatedTrx)
+
+            if (updatedTrx.type == TransactionType.PENGELUARAN) {
+                val budget = budgetDao.getBudgetByCategory(updatedTrx.category)
+                if (budget != null) {
+                    val startTime = if (budget.period == BudgetPeriod.HARIAN) {
+                        DateTimeUtils.getStartOfTodayMillis()
+                    } else {
+                        DateTimeUtils.getStartOfMonthMillis()
+                    }
+                    val totalSpent = (transactionDao.getCategoryExpenseSince(updatedTrx.category, startTime) ?: 0L)
+                    if (totalSpent >= budget.limitAmount) {
+                        val overAmount = totalSpent - budget.limitAmount
+                        alertMessage = if (overAmount > 0)
+                            "Pengeluaran ${updatedTrx.category} telah melebihi batas anggaran sebesar Rp $overAmount!"
+                        else
+                            "Pengeluaran ${updatedTrx.category} telah mencapai batas 100%!"
+                        NotificationHelper.showNotification(
+                            context = context,
+                            notificationId = (budget.id + 9999).toInt(),
+                            channelId = NotificationHelper.CHANNEL_ALARM,
+                            title = "⚠️ Peringatan Anggaran: ${updatedTrx.category}!",
+                            message = alertMessage,
+                            playAlarmSound = user.notifyAlarmSound
+                        )
+                    }
+                }
+            }
+        }
+
+        InfokanWidgetProvider.updateAllWidgets(context)
+        alertMessage
     }
 
     suspend fun deleteTransaction(transaction: TransactionEntity) = withContext(Dispatchers.IO) {
