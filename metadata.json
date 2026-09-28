@@ -1,0 +1,6 @@
+{
+  "name": "Infokan (uang dan waktu)",
+  "description": "Aplikasi ini membantu anak kost, kuliah dan perantauan mengatur uang dan waktunya secara mandiri dan efektif tanpa koneksi internet.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
