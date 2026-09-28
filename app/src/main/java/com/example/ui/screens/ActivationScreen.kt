@@ -59,6 +59,8 @@ fun ActivationScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // Header with White & Blue Gradient
@@ -328,6 +330,8 @@ fun ActivationScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(180.dp))
             }
         }
     }

@@ -2,4 +2,9 @@
     <string name="app_name">Infokan (uang dan waktu)</string>
     <string name="app_short_name">Info Uang Waktu</string>
     <string name="app_description">Aplikasi pengatur keuangan untuk anak kost, kuliah dan perantau</string>
+    <string name="widget_desc_finance">Infokan: Ringkasan Saldo Utama (Cash &amp; Debit)</string>
+    <string name="widget_desc_budget">Infokan: Ringkasan Anggaran &amp; Batas Pengeluaran</string>
+    <string name="widget_desc_schedule">Infokan: Jadwal &amp; Agenda Kegiatan Hari Ini</string>
+    <string name="widget_desc_task">Infokan: Catatan Tugas &amp; Deadline</string>
+    <string name="widget_desc_alarm">Infokan: Status Alarm &amp; Waktu Aktif</string>
 </resources>
