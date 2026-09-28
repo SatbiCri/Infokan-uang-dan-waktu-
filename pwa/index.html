@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Infokan (uang dan waktu) - Info Uang Waktu</title>
+  
+  <!-- SEO & Description -->
+  <meta name="description" content="Aplikasi pengatur keuangan untuk anak kost, kuliah dan perantau. Mengelola uang, alarm jadwal, dan tugas secara mandiri 100% offline.">
+  <meta name="keywords" content="keuangan anak kost, pengatur uang mahasiswa, alarm kuliah, jadwal kuliah, catatan tugas, pwa keuangan, offline finance">
+  
+  <!-- PWA Manifest & Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Info Uang Waktu">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="brand-wrapper">
+          <img src="icons/icon-96.png" alt="Logo Infokan" class="app-logo">
+          <div>
+            <h1 class="brand-title">Infokan (uang dan waktu)</h1>
+            <p class="brand-subtitle">Info Uang Waktu • Anak Kost & Kuliah</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span class="badge-offline">🟢 Offline</span>
+          <button id="btn-install-app" class="btn-install-pwa">📲 Install</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area with 5 Tabs -->
+    <main>
+      <!-- TAB 1: KEUANGAN (FINANCE & BUDGET PROGRESS) -->
+      <section id="tab-keuangan" class="tab-content active">
+        <!-- Balances Grid -->
+        <div class="balances-grid">
+          <div class="balance-item">
+            <div class="balance-label">💵 Saldo Cash (Dompet)</div>
+            <div id="display-saldo-cash" class="balance-amount">Rp 0</div>
+          </div>
+          <div class="balance-item">
+            <div class="balance-label">💳 Saldo Rekening (Debit)</div>
+            <div id="display-saldo-debit" class="balance-amount">Rp 0</div>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="quick-actions">
+          <button id="btn-add-expense" class="btn-action-tile">
+            <span class="tile-icon" style="color: #f87171;">💸</span>
+            <span class="tile-label">+ Pengeluaran</span>
+          </button>
+          <button id="btn-add-income" class="btn-action-tile">
+            <span class="tile-icon" style="color: #34d399;">💰</span>
+            <span class="tile-label">+ Pemasukan</span>
+          </button>
+          <button id="btn-transfer" class="btn-action-tile">
+            <span class="tile-icon" style="color: #60a5fa;">🔄</span>
+            <span class="tile-label">Tarik / Setor</span>
+          </button>
+          <button id="btn-open-budget-modal" class="btn-action-tile" onclick="document.querySelector('.nav-item[data-tab=\'keuangan\']').click(); window.scrollTo({top: 300, behavior:'smooth'});">
+            <span class="tile-icon" style="color: #fbbf24;">📊</span>
+            <span class="tile-label">Anggaran</span>
+          </button>
+        </div>
+
+        <!-- Summary Boxes -->
+        <div class="expense-summary-grid">
+          <div class="summary-box">
+            <div class="summary-title">Pengeluaran Hari Ini</div>
+            <div id="display-today-expense" class="summary-val">Rp 0</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-title">Total Bulan Ini</div>
+            <div id="display-month-expense" class="summary-val">Rp 0</div>
+          </div>
+        </div>
+
+        <!-- Master Budget Progress Bar Card -->
+        <div class="card budget-card">
+          <div class="card-title">
+            <span>🎯 Progress Bar Anggaran Bulan Ini</span>
+            <span id="master-budget-percent" style="color: #38bdf8; font-size: 0.95rem;">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div id="master-budget-fill" class="progress-bar-fill progress-blue" style="width: 0%;"></div>
+          </div>
+          <div class="budget-stats">
+            <span id="master-budget-spent">Terpakai: Rp 0</span>
+            <span id="master-budget-limit">Batas: Rp 0</span>
+          </div>
+          <div style="margin-top: 6px; font-size: 0.8rem; font-weight: 600; color: #38bdf8;" id="master-budget-remaining">
+            Sisa: Rp 0
+          </div>
+
+          <!-- Category Progress Bars -->
+          <div style="margin-top: 16px;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 6px;">
+              Batas Anggaran Kategori
+            </div>
+            <div id="category-budgets-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div class="month-selector-wrapper">
+          <span class="section-heading">Riwayat Transaksi</span>
+          <select id="select-filter-month" class="select-month">
+            <option value="ALL">Semua Bulan</option>
+            <option value="September 2026" selected>September 2026</option>
+            <option value="Agustus 2026">Agustus 2026</option>
+          </select>
+        </div>
+        <div id="transactions-container" class="transaction-list">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- TAB 2: ALARM (MIRIP JAM BAWAAN HP) -->
+      <section id="tab-alarm" class="tab-content">
+        <!-- Live Clock Card -->
+        <div class="card digital-clock-card">
+          <div id="live-clock-digits" class="clock-digits">00:00:00</div>
+          <div id="live-clock-date" class="clock-date">Memuat waktu...</div>
+        </div>
+
+        <!-- Alarm Action Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px;">
+          <h2 class="section-heading">Alarm Bawaan Ponsel</h2>
+          <button id="btn-open-add-alarm" class="btn-secondary" style="background: var(--primary-glow); border-color: var(--primary-light); color: #fff;">
+            + Tambah Alarm
+          </button>
+        </div>
+
+        <!-- Alarm List -->
+        <div id="alarm-list-container" class="alarm-list">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- TAB 3: JADWAL KULIAH & KEGIATAN -->
+      <section id="tab-jadwal" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div>
+            <h2 class="section-heading">Jadwal 7 Hari Ke Depan</h2>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Kuliah, Praktikum & Agenda Kost</p>
+          </div>
+          <button id="btn-open-add-schedule" class="btn-secondary" style="background: var(--primary-glow); border-color: var(--primary-light); color: #fff;">
+            + Tambah Jadwal
+          </button>
+        </div>
+
+        <div id="schedules-container">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- TAB 4: CATATAN TUGAS -->
+      <section id="tab-tugas" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div>
+            <h2 class="section-heading">Catatan Tugas & Deadline</h2>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Tugas Kuliah & Urusan Perantau</p>
+          </div>
+          <button id="btn-open-add-task" class="btn-secondary" style="background: var(--primary-glow); border-color: var(--primary-light); color: #fff;">
+            + Tambah Tugas
+          </button>
+        </div>
+
+        <div id="tasks-container">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- TAB 5: PROFIL & PWA BUILDER INFO -->
+      <section id="tab-profil" class="tab-content">
+        <!-- User Card -->
+        <div class="card card-gradient-blue">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 52px; height: 52px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid #38bdf8;">
+              👤
+            </div>
+            <div>
+              <h2 style="font-size: 1.1rem; color: #fff;">Anak Kost Mandiri</h2>
+              <p style="font-size: 0.8rem; color: #93c5fd;">Status: Mahasiswa / Perantau</p>
+              <div style="display: inline-block; margin-top: 4px; font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+                Aktivasi: TERAKTIVASI AKTIF
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Stats Grid -->
+        <div class="card">
+          <h3 class="section-heading" style="margin-bottom: 12px;">📊 Statistik Aplikasi</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="balance-item">
+              <div class="balance-label">Total Transaksi</div>
+              <div id="stat-total-trans" class="balance-amount" style="font-size: 1.1rem;">0</div>
+            </div>
+            <div class="balance-item">
+              <div class="balance-label">Kategori Anggaran</div>
+              <div id="stat-total-budget" class="balance-amount" style="font-size: 1.1rem;">0</div>
+            </div>
+            <div class="balance-item">
+              <div class="balance-label">Alarm Tersimpan</div>
+              <div id="stat-total-alarm" class="balance-amount" style="font-size: 1.1rem;">0</div>
+            </div>
+            <div class="balance-item">
+              <div class="balance-label">Tugas Belum Selesai</div>
+              <div id="stat-total-tasks" class="balance-amount" style="font-size: 1.1rem;">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PWA Builder Checklist & Info -->
+        <div class="card">
+          <h3 class="section-heading" style="margin-bottom: 8px;">🚀 Kesiapan PWA Builder</h3>
+          <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 10px;">
+            Aplikasi ini telah memenuhi 100% kriteria Microsoft PWABuilder untuk ekspor APK Android, Windows MSIX, dan iOS.
+          </p>
+          <ul class="pwa-checklist">
+            <li><span class="pwa-check-icon">✓</span> Web App Manifest (manifest.json terdaftar)</li>
+            <li><span class="pwa-check-icon">✓</span> Service Worker (<span id="pwa-check-sw">Aktif & Siap Offline</span>)</li>
+            <li><span class="pwa-check-icon">✓</span> Ikon Maskable 512x512, 192x192, 144x144, 96x96</li>
+            <li><span class="pwa-check-icon">✓</span> Screenshots Ponsel & Desktop tersedia</li>
+            <li><span class="pwa-check-icon">✓</span> Standalone Display Mode & Offline Cache</li>
+          </ul>
+        </div>
+
+        <!-- Backup & Reset Data -->
+        <div class="card">
+          <h3 class="section-heading" style="margin-bottom: 8px;">💾 Cadangkan & Pemulihan</h3>
+          <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px;">
+            Semua data tersimpan aman di penyimpanan internal offline browser (localStorage). Anda dapat mengekspor atau memulihkan data sewaktu-waktu.
+          </p>
+          <div style="display: flex; gap: 8px; flex-direction: column;">
+            <button id="btn-export-data" class="btn-secondary" style="text-align: center;">📥 Cadangkan Data (Unduh JSON)</button>
+            <button id="btn-reset-data" class="btn-secondary" style="color: var(--danger); text-align: center;">⚠️ Reset Data ke Setelan Awal</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar (5 Tabs) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="keuangan">
+        <span class="nav-icon">👛</span>
+        <span class="nav-label">Keuangan</span>
+      </button>
+      <button class="nav-item" data-tab="alarm">
+        <span class="nav-icon">⏰</span>
+        <span class="nav-label">Alarm</span>
+      </button>
+      <button class="nav-item" data-tab="jadwal">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Jadwal</span>
+      </button>
+      <button class="nav-item" data-tab="tugas">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">Tugas</span>
+      </button>
+      <button class="nav-item" data-tab="profil">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Profil</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Modal Add Expense -->
+  <div id="modal-add-expense" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">💸 Catat Pengeluaran</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="form-add-expense">
+        <div class="form-group">
+          <label class="form-label">Nominal (Rp)</label>
+          <input type="number" id="expense-amount" class="form-input" placeholder="Contoh: 25000" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kategori</label>
+          <select id="expense-category" class="form-select">
+            <option value="Makanan & Minuman">🍔 Makanan & Minuman</option>
+            <option value="Kos & Listrik">🏠 Kos & Listrik</option>
+            <option value="Transportasi">🛵 Transportasi</option>
+            <option value="Kuliah & Buku">📚 Kuliah & Buku</option>
+            <option value="Belanja Kebutuhan">🛒 Belanja Kebutuhan</option>
+            <option value="Hiburan / Nongkrong">☕ Hiburan / Nongkrong</option>
+            <option value="Lainnya">📦 Lainnya</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sumber Dana</label>
+          <select id="expense-wallet" class="form-select">
+            <option value="CASH">💵 Saldo Cash (Dompet)</option>
+            <option value="DEBIT">💳 Saldo Rekening (Debit/ATM)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan</label>
+          <input type="text" id="expense-note" class="form-input" placeholder="Makan malam, beli pulsa, dll">
+        </div>
+        <button type="submit" class="btn-primary">Simpan Pengeluaran</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Add Income -->
+  <div id="modal-add-income" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">💰 Catat Pemasukan</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="form-add-income">
+        <div class="form-group">
+          <label class="form-label">Nominal (Rp)</label>
+          <input type="number" id="income-amount" class="form-input" placeholder="Contoh: 1500000" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kategori</label>
+          <select id="income-category" class="form-select">
+            <option value="Kiriman Orang Tua">👨‍👩‍👦 Kiriman Orang Tua</option>
+            <option value="Gaji / Honor / Freelance">💼 Gaji / Freelance</option>
+            <option value="Beasiswa">🎓 Beasiswa</option>
+            <option value="Pemasukan Lain">💵 Pemasukan Lain</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Masuk ke</label>
+          <select id="income-wallet" class="form-select">
+            <option value="DEBIT">💳 Saldo Rekening (Debit/ATM)</option>
+            <option value="CASH">💵 Saldo Cash (Dompet)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan</label>
+          <input type="text" id="income-note" class="form-input" placeholder="Kiriman bulanan, hasil kerja sampingan">
+        </div>
+        <button type="submit" class="btn-primary">Simpan Pemasukan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Transfer (Tarik / Setor Tunai) -->
+  <div id="modal-transfer" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 Tarik / Setor Tunai</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="form-transfer">
+        <div class="form-group">
+          <label class="form-label">Jenis Transaksi</label>
+          <select id="transfer-type" class="form-select">
+            <option value="TARIK">🏧 Tarik Tunai (Debit ATM ➔ Cash Dompet)</option>
+            <option value="SETOR">🏦 Setor Tunai (Cash Dompet ➔ Debit ATM)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nominal (Rp)</label>
+          <input type="number" id="transfer-amount" class="form-input" placeholder="Contoh: 100000" required>
+        </div>
+        <button type="submit" class="btn-primary">Proses Pemindahan Saldo</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Add Alarm -->
+  <div id="modal-add-alarm" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">⏰ Tambah Alarm Ponsel</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="form-add-alarm">
+        <div class="form-group">
+          <label class="form-label">Waktu Alarm (Jam : Menit)</label>
+          <input type="time" id="alarm-time" class="form-input" value="06:00" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nama / Label Alarm</label>
+          <input type="text" id="alarm-label" class="form-input" placeholder="Bangun kuliah pagi, masak nasi, dll">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nada Dering</label>
+          <select id="alarm-sound" class="form-select">
+            <option value="digital">Beep Digital HP (Classic)</option>
+            <option value="gentle">Melodi Bangun Santai (Gentle Chime)</option>
+            <option value="bell">Lonceng Alarm Cepat (Bell)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ulangi Setiap Hari</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Sen" checked> Sen</label>
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Sel" checked> Sel</label>
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Rab" checked> Rab</label>
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Kam" checked> Kam</label>
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Jum" checked> Jum</label>
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Sab"> Sab</label>
+            <label style="font-size:0.8rem; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="alarm-day-check" value="Min"> Min</label>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Simpan Alarm</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Add Schedule -->
+  <div id="modal-add-schedule" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">📅 Tambah Jadwal Kegiatan</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="form-add-schedule">
+        <div class="form-group">
+          <label class="form-label">Hari</label>
+          <select id="schedule-day" class="form-select">
+            <option value="Senin">Senin</option>
+            <option value="Selasa">Selasa</option>
+            <option value="Rabu">Rabu</option>
+            <option value="Kamis">Kamis</option>
+            <option value="Jumat">Jumat</option>
+            <option value="Sabtu">Sabtu</option>
+            <option value="Minggu">Minggu</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mata Kuliah / Kegiatan</label>
+          <input type="text" id="schedule-name" class="form-input" placeholder="Nama mata kuliah / agenda" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Waktu (Jam Mulai - Selesai)</label>
+          <input type="text" id="schedule-time" class="form-input" placeholder="08:00 - 10:30" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ruangan / Tempat</label>
+          <input type="text" id="schedule-room" class="form-input" placeholder="Gedung B Ruang 203">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan</label>
+          <input type="text" id="schedule-note" class="form-input" placeholder="Dosen pengampu, tugas praktikum, dll">
+        </div>
+        <button type="submit" class="btn-primary">Simpan Jadwal</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Add Task -->
+  <div id="modal-add-task" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">📝 Tambah Catatan Tugas</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="form-add-task">
+        <div class="form-group">
+          <label class="form-label">Judul Tugas</label>
+          <input type="text" id="task-title" class="form-input" placeholder="Laporan praktikum, beli galon air, dll" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kategori / Mata Kuliah</label>
+          <input type="text" id="task-course" class="form-input" placeholder="Nama mata kuliah atau 'Kost'">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tenggat Waktu (Deadline)</label>
+          <input type="text" id="task-deadline" class="form-input" placeholder="Besok 23:59 atau 30 Sep 2026">
+        </div>
+        <button type="submit" class="btn-primary">Simpan Tugas</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Alarm Ringing -->
+  <div id="modal-alarm-ringing" class="modal-overlay" style="z-index: 200;">
+    <div class="modal-dialog" style="text-align: center;">
+      <div style="font-size: 3.5rem; margin-bottom: 8px;">⏰</div>
+      <h2 id="ringing-alarm-time" style="font-size: 2.8rem; font-weight: 800; color: #38bdf8;">00:00</h2>
+      <p id="ringing-alarm-label" style="font-size: 1.1rem; color: #fff; margin-bottom: 24px;">Waktunya bangun!</p>
+      <button id="btn-stop-alarm" class="btn-primary" style="background: linear-gradient(135deg, #ef4444, #dc2626); font-size: 1.1rem; padding: 16px;">
+        🛑 Matikan Alarm
+      </button>
+    </div>
+  </div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>

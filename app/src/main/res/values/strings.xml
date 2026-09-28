@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">Infokan uang waktu</string>
+    <string name="app_name">Infokan (uang dan waktu)</string>
+    <string name="app_short_name">Info Uang Waktu</string>
+    <string name="app_description">Aplikasi pengatur keuangan untuk anak kost, kuliah dan perantau</string>
 </resources>

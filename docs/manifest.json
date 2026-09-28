@@ -1,0 +1,95 @@
+{
+  "name": "Infokan (uang dan waktu)",
+  "short_name": "Info Uang Waktu",
+  "description": "Aplikasi pengatur keuangan untuk anak kost, kuliah dan perantau",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "infokan-uang-dan-waktu-pwa",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#1d4ed8",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/mobile-preview.png",
+      "sizes": "540x960",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tampilan Ponsel - Infokan (uang dan waktu)"
+    },
+    {
+      "src": "screenshots/desktop-preview.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tampilan Desktop - Infokan (uang dan waktu)"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Keuangan & Anggaran",
+      "short_name": "Keuangan",
+      "description": "Buka pencatatan keuangan dan anggaran",
+      "url": "./index.html#keuangan",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Alarm Bawaan HP",
+      "short_name": "Alarm",
+      "description": "Atur alarm bangun dan kuliah",
+      "url": "./index.html#alarm",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Jadwal Kegiatan",
+      "short_name": "Jadwal",
+      "description": "Lihat jadwal kuliah dan kegiatan 7 hari ke depan",
+      "url": "./index.html#jadwal",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Catatan Tugas",
+      "short_name": "Tugas",
+      "description": "Kelola tugas kuliah dan deadline urusan kost",
+      "url": "./index.html#tugas",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
